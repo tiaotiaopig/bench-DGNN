@@ -21,15 +21,15 @@ class GCLSTM(torch.nn.Module):
         #node_feats = node_feats[-1].to_dense() #Can't be sparse for some reason.
         #edge_index = edge_index[-1]
         #edge_feats = edge_feats[-1]
-
+        # 作者实现有问题
+        H, C = None, None
         for t, edge_index in enumerate(edge_index_list):
             node_feats = node_feats_list[t].to_dense()
             edge_feats = edge_feats_list[t]
 
-            x, _ = self.recurrent_1(node_feats, edge_index, edge_feats)
+            H, C = self.recurrent_1(node_feats, edge_index, edge_feats, H, C)
             # Original seem to use only one layer
             #x, _ = self.recurrent_2(x, edge_index, edge_weight)
-            x = F.relu(x)
 
         #x = self.activation(x)
-        return x
+        return F.relu(H)

@@ -35,6 +35,7 @@ from models.tgn_utils.utils import get_neighbor_finder as TGN_get_neighbor_finde
 from models.tgn_utils.utils import (
     compute_time_statistics as TGN_compute_time_statistics,
 )
+from models.gc_transformer import GCNTransformer
 
 
 import splitter as sp
@@ -72,7 +73,7 @@ def prepare_args(args):
         "gat",
         "random",
     ]  # seal implementation cancelled due to scaling issues
-    discrete_models = ["egcn_o", "egcn_h", "gclstm", "egcn_h_old", "egcn_o_old"]
+    discrete_models = ["egcn_o", "egcn_h", "gclstm", "egcn_h_old", "egcn_o_old", "gc_transformer"]
     continuous_models = ["tgat", "tgn"]
 
     args.heuristic = args.model in heuristics
@@ -104,7 +105,8 @@ def prepare_args(args):
             "lstm_l2_feats_name_as_l1" in args.gcn_parameters.keys()
         ) and args.gcn_parameters["layer_2_feats_same_as_l1"]:
             args.gcn_parameters["layer_2_feats"] = args.gcn_parameters["layer_1_feats"]
-
+        # 强行修改，适配下我的方法
+        args.gcn_parameters["layer_2_feats"] = args.num_hist_steps * args.gcn_parameters["d_model"]
     return args
 
 
@@ -125,6 +127,7 @@ def build_tasker(args, dataset, temporal_granularity):
 def build_gcn(args, tasker, dataset, splitter, feats_per_node):
     gcn_args = u.Namespace(args.gcn_parameters)
     gcn_args.feats_per_node = feats_per_node
+    gcn_args.num_hist_steps = args.num_hist_steps
 
     if args.model == "simplegcn":  # Same as 'gcn' only manually implemented
         gcn = mls.Sp_GCN(gcn_args, activation=torch.nn.RReLU()).to(args.device)
@@ -134,6 +137,8 @@ def build_gcn(args, tasker, dataset, splitter, feats_per_node):
         gcn = GAT(gcn_args, activation=torch.nn.RReLU()).to(args.device)
     elif args.model == "gclstm":
         gcn = GCLSTM(gcn_args, activation=torch.nn.RReLU()).to(args.device)
+    elif args.model == "gc_transformer":
+        gcn = GCNTransformer(gcn_args, activation=torch.nn.RReLU()).to(args.device)
     elif args.model == "skipgcn":
         gcn = mls.Sp_Skip_GCN(gcn_args, activation=torch.nn.RReLU()).to(args.device)
     elif args.model == "skipfeatsgcn":
@@ -409,7 +414,8 @@ def build_grid(all_args):
 def read_data_master(args, dataset_name=None):
     if not dataset_name:
         dataset_name = args.data
-    master = pd.read_csv(os.path.join("config", "data_master.csv"), index_col=0)
+    
+    master = pd.read_csv(os.path.join(os.path.dirname(__file__), "config/data_master.csv"), index_col=0)
     if not dataset_name in master:
         error_mssg = "Dataset not found in data master. Dataset name {}.\n".format(
             dataset_name
@@ -419,7 +425,7 @@ def read_data_master(args, dataset_name=None):
         raise ValueError(error_mssg)
     meta_info = master[dataset_name]
 
-    args.data_filepath = os.path.join("data", meta_info["filename"])
+    args.data_filepath = os.path.join(os.path.dirname(__file__), f'data/{meta_info["filename"]}')
     args.snapshot_size = float(meta_info["snapshot size"])
     args.train_proportion = float(meta_info["train proportion"])
     args.val_proportion = float(meta_info["val proportion"])
@@ -447,9 +453,7 @@ def run_experiment(args):
     #    print(args.ncores)
     # torch.set_num_threads(16)
     args.use_cuda = torch.cuda.is_available() and args.use_cuda
-    args.device = "cpu"
-    if args.use_cuda:
-        args.device = "cuda"
+    args.device = torch.device('cuda:1' if args.use_cuda else 'cpu')
     print("use CUDA:", args.use_cuda, "- device:", args.device)
     try:
         dist.init_process_group(
@@ -675,10 +679,10 @@ if __name__ == "__main__":
             else:
                 print("SKIPPING CELL " + u.get_gridcell(exp_args))
     except Exception as e:
-        notify(args, "{}/{} crashed {}".format(cell_num, cell_tot, str(e)))
+        # notify(args, "{}/{} crashed {}".format(cell_num, cell_tot, str(e)))
         raise
     except:
-        notify(args, "{}/{} crashed {}".format(cell_num, cell_tot, sys.exc_info()[0]))
+        # notify(args, "{}/{} crashed {}".format(cell_num, cell_tot, sys.exc_info()[0]))
         raise
 
     end_time_tot = time.time()

@@ -9,7 +9,7 @@ data_folder: 'data'
 
 use_cuda: True
 use_logfile: True
-notify: True
+notify: False
 skip_computed_grid_cells: True
 run_downstream: False
 
@@ -23,7 +23,7 @@ seed: 1234
 target_measure: MAP # measure to define the best epoch F1, Precision, Recall, MRR, MAP
 target_class: 1 # Target class to get the measure to define the best epoch (all, 0, 1)
 
-num_epochs: 500
+num_epochs: 50
 early_stop_patience: 100
 eval_after_epochs: 5
 eval_epoch_interval: 5

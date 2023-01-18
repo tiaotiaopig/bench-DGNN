@@ -9,7 +9,6 @@ import torch
 import math
 import os.path
 from torch.nn import BCEWithLogitsLoss
-from xgboost import XGBClassifier
 
 class Trainer():
     def __init__(self,args, splitter, frozen_encoder_splitter,
@@ -39,18 +38,19 @@ class Trainer():
         # Runs using a logfile are usually more serious and we'll like to keep those checkpoints.
         # Runs not using a logfile store the checkpoints in the working dir where they may
         # later be overwritten
+        base_dir = os.path.dirname(__file__)
         if args.use_logfile:
             if args.temporal_granularity == 'continuous':
-                self.checkpoint_filename_prefix = "checkpoints/{}-{}-learning_rate{}".format(args.data, args.model, args.learning_rate)
+                self.checkpoint_filename_prefix = "{}/checkpoints/{}-{}-learning_rate{}".format(base_dir, args.data, args.model, args.learning_rate)
             else:
-                self.checkpoint_filename_prefix = "checkpoints/{}-{}-{}-".format(args.data, args.model, args.grid)
-            prediction_folder = "predictions/{}-{}/".format(args.data, args.model)
+                self.checkpoint_filename_prefix = "{}/checkpoints/{}-{}-{}-".format(base_dir, args.data, args.model, args.grid)
+            prediction_folder = "{}/predictions/{}-{}/".format(base_dir, args.data, args.model)
             self.prediction_filename_prefix = "{}{}-".format(prediction_folder, u.get_gridcell(args))
             os.makedirs(prediction_folder, exist_ok=True)
         else:
-            self.checkpoint_filename_prefix = "checkpoints/"
+            self.checkpoint_filename_prefix = f"{base_dir}/checkpoints/"
             #self.checkpoint_filename_prefix = 'wikipedia-tgat-'
-            self.prediction_filename_prefix = "predictions/"
+            self.prediction_filename_prefix = f"{base_dir}/predictions/"
 
         #if self.tasker.is_static:
         #    adj_matrix = u.sparse_prepare_tensor(self.tasker.adj_matrix, torch_size = [self.num_nodes], ignore_batch_dim = False)

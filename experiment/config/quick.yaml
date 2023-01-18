@@ -1,11 +1,12 @@
 #log_folder: 'log_quick'
 
 # Used to quickly test a model or dataset. Simply uncomment the model or dataset you want to run. (last uncommented model/dataset is used)
-#model: gcn
+# model: gcn
 #model: gat
 #model: seal
 #model: egcn_h
-#model: gclstm
+# model: gclstm
+model: gc_transformer
 #model: tgat
 #model: tgn
 #model: random #Called R-embed from paper
@@ -14,7 +15,7 @@
 #model: aa
 #model: jaccard 
 #model: newton
-model: ccpa
+# model: ccpa
 
 data: enron
 #data: uc
@@ -42,10 +43,10 @@ decoder_learning_rate:
     - 0.01
 decoder_weight_decay:
     - 0.01
-num_epochs: 10
+num_epochs: 100
 num_epochs_continuous: 10
-eval_after_epochs: 0
-num_hist_steps: 1 #'expanding' #'static' #1 #10 #'static' # number of previous steps used for prediction
+eval_after_epochs: 5
+num_hist_steps: 5 #'expanding' #'static' #1 #10 #'static' # number of previous steps used for prediction
 
 seed: 1235
 data_loading_params:
@@ -64,6 +65,11 @@ gcn_parameters:
 
   # GC-LSTM
   K: 3
+
+  # transformer
+  d_model: 32
+  num_layers: 6
+  
 
 
   # All
